@@ -3,6 +3,10 @@
 ;
 ; File -> Create -> Misc -> Make 3D Anaglyph...
 ;
+; or call (bash escape syntax)
+;
+; gimp -b '(make-3d-anaglyph-and-save "right.jpg" "left.jpg" '\''(255 0 0) '\''(0 255 255) "3d.jpg")'
+;
 ; (c) Cougar <cougar@random.ee> 2010 
 ;
 ; This program is free software; you can redistribute it and/or modify
@@ -48,19 +52,18 @@
 
 (define (make-3d-anaglyph img_r_f img_l_f inRightColour inLeftColour)
 	(let*  
-	(
-		(theImage (car (gimp-image-new 1 1 RGB) ) )
-		(theRightImageLayer (car (gimp-file-load-layer RUN-INTERACTIVE theImage img_r_f)))
-		(theLeftImageLayer (car (gimp-file-load-layer RUN-INTERACTIVE theImage img_l_f)))
-	)
+	()
 
 	(gimp-context-push)
 	
+	(define theImage (car (gimp-image-new 1 1 RGB) ) )
 	(gimp-image-undo-disable theImage)
 
+	(define theRightImageLayer (car (gimp-file-load-layer RUN-INTERACTIVE theImage img_r_f)))
 	(gimp-image-add-layer theImage theRightImageLayer 0)
 	(gimp-drawable-set-name theRightImageLayer (string-append "Right Image: " (car (reverse (strbreakup img_r_f "/")))))
 
+	(define theLeftImageLayer (car (gimp-file-load-layer RUN-INTERACTIVE theImage img_l_f)))
 	(gimp-image-add-layer theImage theLeftImageLayer -1)
 	(gimp-drawable-set-name theLeftImageLayer (string-append "Left Image: " (car (reverse (strbreakup img_l_f "/")))))
 
@@ -74,26 +77,44 @@
 	(gimp-edit-bucket-fill theRightImageLayer BG-BUCKET-FILL SCREEN-MODE 100 0 FALSE 0 0)
 	(gimp-layer-set-mode theLeftImageLayer MULTIPLY-MODE)
 
-	(gimp-display-new theImage)
-	(gimp-displays-flush)
-
 	(gimp-image-undo-enable theImage)
 
 	(gimp-context-pop)
+
+	(list theImage)
 	)
 )
 
-(script-fu-register "make-3d-anaglyph"
+(define (make-3d-anaglyph-interactive img_r_f img_l_f inRightColour inLeftColour)
+	(let*
+	()
+	(define theImage (car (make-3d-anaglyph img_r_f img_l_f inRightColour inLeftColour)))
+	(gimp-display-new theImage)
+	(gimp-displays-flush)
+	)
+)
+
+(define (make-3d-anaglyph-and-save img_r_f img_l_f inRightColour inLeftColour img_3d_f)
+	(let *
+	()
+	(define theImage (car (make-3d-anaglyph img_r_f img_l_f inRightColour inLeftColour)))
+	(define theDrawable (car (gimp-image-flatten theImage)))
+	(gimp-file-save RUN-NONINTERACTIVE theImage theDrawable img_3d_f img_3d_f)
+	(gimp-image-delete theImage)
+	)
+)
+
+(script-fu-register "make-3d-anaglyph-interactive"
 	_"Make 3D _Anaglyph..."
 	"Loads two images and converts them images to a two-colour Anaglyph."
 	"Cougar"
 	"Copyright 2010, Cougar <cougar@random.ee>"
 	"25/4/2010"
 	""
-	SF-FILENAME	_"Right Image"			"right.jpg"
-	SF-FILENAME	_"Left Image"			"left.jpg"
-	SF-COLOR	"Right Image Color (Red):"	'(255 0 0)
-	SF-COLOR	"Left Image Color (Cyan):"	'(0 255 255)
+	SF-FILENAME	_"_Right Image"			"right.jpg"
+	SF-FILENAME	_"_Left Image"			"left.jpg"
+	SF-COLOR	_"R_ight Image Color (Red)"	'(255 0 0)
+	SF-COLOR	_"L_eft Image Color (Cyan)"	'(0 255 255)
 )
 
-(script-fu-menu-register "make-3d-anaglyph"  _"<Toolbox>/Xtns/Misc")
+(script-fu-menu-register "make-3d-anaglyph-interactive"  _"<Toolbox>/Xtns/Misc")
